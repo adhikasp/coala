@@ -1,8 +1,9 @@
 import copy
+import logging
 
 from coalib.bears.BEAR_KIND import BEAR_KIND
 from coalib.collecting import Dependencies
-from coalib.collecting.Collectors import collect_bears
+from coalib.collecting.Collectors import collect_bears, collect_bears_by_aspects
 from coalib.settings.Setting import Setting
 
 
@@ -29,7 +30,17 @@ def fill_settings(sections, acquire_settings, log_printer):
 
     for section_name, section in sections.items():
         bear_dirs = section.bear_dirs()
-        bears = list(section.get('bears', ''))
+        # Use different bear collection function for aspects and non-aspects section
+        # TODO don't use yet-another-setting `use_aspect` to detect usage of aspect.
+        #   I use this because I got confused on how to 'check if a setting is written
+        #   by user' against a coafile setting with type `str`. So I write up new
+        #   `bool` variable :(
+        aspects_mode = section.get('use_aspect', 'false')
+        if aspects_mode:
+            bears = collect_bears_by_aspects(section)
+        else:
+            bears = list(section.get('bears', ''))
+        logging.debug('Choosen bear in `' + section_name + '`: ' + bears.__str__())
         section_local_bears, section_global_bears = collect_bears(
             bear_dirs,
             bears,

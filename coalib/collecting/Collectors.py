@@ -1,7 +1,10 @@
 import functools
 import os
+import re
+
 import pkg_resources
 import itertools
+import logging
 
 from pyprint.NullPrinter import NullPrinter
 
@@ -310,3 +313,48 @@ def collect_registered_bears_dirs(entrypoint):
         collected_dirs.append(os.path.abspath(
             os.path.dirname(registered_package.__file__)))
     return collected_dirs
+
+
+def collect_bears_by_aspects(section):
+    """
+    Collect required bears of a section based on:
+        1. Matching language
+        2. Aspect capability
+
+    :param section:          Section where we want to resolve bear requirement.
+    :return collected_bears: List of bear name that fulfill the aspect and language
+                             requirement.
+    """
+    # Assert that we have language AND aspects data
+    # TODO change logic to find out that those setting is NOT EMPTY.
+    if not str(section.get('language')) or not str(section.get('aspects')):
+        logging.error('No language or aspects setting. Cannot do aspect-based bear '
+                      'collection.')
+        return ''
+    # TODO ``get_all_bears()`` is already accessing coala-bears module through ``collect_bears()``.
+    #   The return value of this function will be feed to ``collect_bears()`` too.
+    #   So it's kinda inefficient.
+    all_bears = get_all_bears()
+    target_language = str(section.get('language'))
+    target_aspects = list(section.get('aspects'))
+    collected_bears = []
+
+    for bear in all_bears:
+        if target_language.lower() not in [lang.lower() for lang in list(bear.LANGUAGES)]:
+            continue
+        # TODO better aspect resolving algorithm.
+        # TODO This mix search from 'detect' and 'fix'. Maybe we don't want that.
+        # TODO Only fetch the first bear it's find on each requested aspect.
+        #   I think the logic structure could be improved.
+        for aspect in target_aspects:
+            aspect_found = False
+            for bear_capability in itertools.chain(bear.aspects['detect'],
+                                                   bear.aspects['fix']):
+                if aspect.lower().find(bear_capability.__qualname__.lower()):
+                    collected_bears.append(bear.name)
+                    aspect_found = True
+                    break
+            if aspect_found:
+                continue
+
+    return collected_bears
