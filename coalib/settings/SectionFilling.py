@@ -1,9 +1,11 @@
 import copy
+import logging
 
+from coalib.bearlib.aspects.collections import aspectlist, create_aspects_instance_from_section
 from coalib.bears.BEAR_KIND import BEAR_KIND
 from coalib.collecting import Dependencies
-from coalib.collecting.Collectors import collect_bears
-from coalib.settings.Setting import Setting
+from coalib.collecting.Collectors import collect_bears, collect_bears_via_aspect
+from coalib.settings.Setting import Setting, aspect_list
 
 
 def fill_settings(sections, acquire_settings, log_printer):
@@ -28,13 +30,25 @@ def fill_settings(sections, acquire_settings, log_printer):
     global_bears = {}
 
     for section_name, section in sections.items():
-        bear_dirs = section.bear_dirs()
-        bears = list(section.get('bears', ''))
-        section_local_bears, section_global_bears = collect_bears(
-            bear_dirs,
-            bears,
-            [BEAR_KIND.LOCAL, BEAR_KIND.GLOBAL],
-            log_printer)
+        # Prototype for PHASE 2
+        if len(section.get('aspects')):
+            init_aspects(section)
+            bear_dirs = section.bear_dirs()
+            section_local_bears, section_global_bears = \
+                collect_bears_via_aspect(
+                    section.get('aspects'),
+                    bear_dirs,
+                    [BEAR_KIND.LOCAL, BEAR_KIND.GLOBAL],
+                    log_printer
+                )
+        else:
+            bear_dirs = section.bear_dirs()
+            bears = list(section.get('bears', ''))
+            section_local_bears, section_global_bears = collect_bears(
+                bear_dirs,
+                bears,
+                [BEAR_KIND.LOCAL, BEAR_KIND.GLOBAL],
+                log_printer)
         section_local_bears = Dependencies.resolve(section_local_bears)
         section_global_bears = Dependencies.resolve(section_global_bears)
         all_bears = copy.deepcopy(section_local_bears)
@@ -88,5 +102,41 @@ def fill_section(section, acquire_settings, log_printer, bears):
         new_vals = acquire_settings(log_printer, needed_settings, section)
         for setting, help_text in new_vals.items():
             section.append(Setting(setting, help_text))
+
+    return section
+
+
+def init_aspects(section):
+    """
+    Overwrite ``section['aspects']`` (and ``section['exclude_aspects']`` if
+    exist) Setting to hold list of aspect instance that contain information
+    about list of aspect that user want to analyze, its language, and set
+    custom taste value that was declared on configuration files.
+
+    ``section['aspects']`` and ``section['exclude_aspects']`` is a special
+    Setting object that hold raw Python object (an aspectlist) instead of a
+    string.
+
+    :param section:          A section containing available settings. Settings
+                             will be added if some are missing.
+    :return:                 The new section.
+    """
+    if not len(section.get('language')):
+        raise AttributeError('Language was not found in configuration file'
+                             'Usage of aspect-based configuration must include'
+                             'language information.')
+        # TODO acquire language from interactive input instead of just raising
+        # error
+
+    include_aspects = create_aspects_instance_from_section(
+        aspect_list(section['aspects']), section['language'], section)
+    section.update_setting(key='aspects', new_value=include_aspects,
+                           raw_value=True)
+    # if not len(section.get('exclude_aspects')):
+    #     exclude_aspects = create_aspects_instance_from_section(
+    #         aspect_list(section['exclude_aspects']),
+    #         section['language'], section)
+    #     section.update_setting(key='exclude_aspects',
+    #                            new_value=exclude_aspects, raw_value=True)
 
     return section

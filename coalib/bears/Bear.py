@@ -270,10 +270,10 @@ class Bear(Printer, LogPrinterMixin, metaclass=bearclass):
         if self.message_queue is not None:
             self.message_queue.put(log_message)
 
-    def run(self, *args, dependency_results=None, **kwargs):
+    def run(self, aspects, *args, dependency_results=None, **kwargs):
         raise NotImplementedError
 
-    def run_bear_from_section(self, args, kwargs):
+    def run_bear_from_section(self, aspects, args, kwargs):
         try:
             kwargs.update(
                 self.get_metadata().create_params_from_section(self.section))
@@ -282,14 +282,14 @@ class Bear(Printer, LogPrinterMixin, metaclass=bearclass):
                 self.name), str(err))
             return
 
-        return self.run(*args, **kwargs)
+        return self.run(aspects=aspects, *args, **kwargs)
 
-    def execute(self, *args, debug=False, **kwargs):
+    def execute(self, aspect, *args, debug=False, **kwargs):
         name = self.name
         try:
             self.debug('Running bear {}...'.format(name))
             # If it's already a list it won't change it
-            result = self.run_bear_from_section(args, kwargs)
+            result = self.run_bear_from_section(aspect, args, kwargs)
             return [] if result is None else list(result)
         except (Exception, SystemExit) as exc:
             if debug and not isinstance(exc, SystemExit):

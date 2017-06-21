@@ -275,7 +275,8 @@ class Section:
     def update_setting(self,
                        key,
                        new_key=None,
-                       new_value=None):
+                       new_value=None,
+                       raw_value=False):
         """
         Updates a setting with new values.
         :param key:       The old key string.
@@ -289,7 +290,10 @@ class Section:
                                                     new_key)
         if new_value is not None:
             if new_key is not None:
-                self.contents[new_key].value = new_value
+                key = new_key
+            if raw_value:
+                self.contents[key].raw_value = True
+                self.contents[key]._value = new_value
             else:
                 self.contents[key].value = new_value
 

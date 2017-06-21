@@ -98,6 +98,8 @@ def aspect_list(obj, *args, **kwargs):
     :param obj: The ``Setting`` object from which the key is obtained.
     :return:    An aspectlist instance.
     """
+    if isinstance(obj.value, aspectlist):
+        return obj.value
     return aspectlist([coalib.bearlib.aspects[aspect] for aspect in
                        obj.__iter__(*args, **kwargs)])
 
@@ -118,7 +120,8 @@ class Setting(StringConverter):
                  list_delimiters: Iterable=(',', ';'),
                  from_cli: bool=False,
                  remove_empty_iter_elements: bool=True,
-                 to_append: bool=False):
+                 to_append: bool=False,
+                 raw_value=False):
         """
         Initializes a new Setting,
 
@@ -155,6 +158,14 @@ class Setting(StringConverter):
         self.from_cli = from_cli
         self.key = key
         self.origin = str(origin)
+        self.raw_value = raw_value
+        if raw_value:
+            self._value = value
+
+    def __str__(self):
+        if self.raw_value:
+            return str(self._value)
+        return super(Setting, self).__str__()
 
     def __path__(self, origin=None, glob_escape_origin=False):
         """
@@ -227,6 +238,9 @@ class Setting(StringConverter):
                  the parent directories of the setting are escaped.
         """
         return [Setting.__glob__(elem, self.origin) for elem in self]
+
+    def __aspects__(self):
+        return self._value
 
     def __iter__(self, remove_backslashes=True):
         if self.to_append:

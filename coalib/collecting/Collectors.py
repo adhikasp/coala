@@ -184,6 +184,14 @@ def collect_bears(bear_dirs, bear_globs, kinds, log_printer,
     return bears_found
 
 
+# Prototype for PHASE 2
+def collect_bears_via_aspect(aspect, bear_dirs, kinds, log_printer):
+    bears = ['coalaBear']
+    bears_found = collect_bears(bear_dirs, bears, kinds, log_printer)
+    print(bears_found)
+    return bears_found
+
+
 def filter_section_bears_by_languages(bears, languages):
     """
     Filters the bears by languages.

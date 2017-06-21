@@ -76,7 +76,7 @@ def validate_results(message_queue, timeout, result_list, name, args, kwargs):
     return result_list
 
 
-def run_bear(message_queue, timeout, bear_instance, *args, debug=False,
+def run_bear(message_queue, timeout, bear_instance, aspects, *args, debug=False,
              **kwargs):
     """
     This method is responsible for executing the instance of a bear. It also
@@ -102,7 +102,7 @@ def run_bear(message_queue, timeout, bear_instance, *args, debug=False,
     name = bear_instance.name
 
     try:
-        result_list = bear_instance.execute(*args, debug=debug, **kwargs)
+        result_list = bear_instance.execute(aspects=aspects, *args, debug=debug, **kwargs)
     except (Exception, SystemExit) as exc:
         if debug and not isinstance(exc, SystemExit):
             raise
@@ -213,6 +213,7 @@ def run_global_bear(message_queue,
                     timeout,
                     global_bear_instance,
                     dependency_results,
+                    aspects,
                     debug=False):
     """
     Runs an instance of a global bear. Checks if bear_instance is of type
@@ -259,6 +260,7 @@ def run_local_bears_on_file(message_queue,
                             local_result_dict,
                             control_queue,
                             filename,
+                            aspcets,
                             debug=False):
     """
     This method runs a list of local bears on one file.
@@ -303,6 +305,7 @@ def run_local_bears_on_file(message_queue,
                                 file_dict,
                                 bear_instance,
                                 filename,
+                                aspects,
                                 debug=debug)
         if result is not None:
             local_result_list.extend(result)
@@ -393,6 +396,7 @@ def run_local_bears(filename_queue,
                     local_bear_list,
                     local_result_dict,
                     control_queue,
+                    aspects,
                     debug=False):
     """
     Run local bears on all the files given.
@@ -426,6 +430,7 @@ def run_local_bears(filename_queue,
                                     local_result_dict,
                                     control_queue,
                                     filename,
+                                    aspects,
                                     debug=debug)
             task_done(filename_queue)
     except queue.Empty:
@@ -438,6 +443,7 @@ def run_global_bears(message_queue,
                      global_bear_list,
                      global_result_dict,
                      control_queue,
+                     aspects,
                      debug=False):
     """
     Run all global bears.
@@ -469,7 +475,7 @@ def run_global_bears(message_queue,
                                      global_result_dict))
             bearname = bear.__class__.__name__
             result = run_global_bear(message_queue, timeout, bear, dep_results,
-                                     debug=debug)
+                                     aspects, debug=debug)
             if result:
                 global_result_dict[bearname] = result
                 control_queue.put((CONTROL_ELEMENT.GLOBAL, bearname))
@@ -489,6 +495,7 @@ def run(file_name_queue,
         global_result_dict,
         message_queue,
         control_queue,
+        aspects,
         timeout=0,
         debug=False):
     """
@@ -548,6 +555,7 @@ def run(file_name_queue,
                         local_bear_list,
                         local_result_dict,
                         control_queue,
+                        aspects,
                         debug=debug)
         control_queue.put((CONTROL_ELEMENT.LOCAL_FINISHED, None))
 
@@ -557,6 +565,7 @@ def run(file_name_queue,
                          global_bear_list,
                          global_result_dict,
                          control_queue,
+                         aspects,
                          debug=debug)
         control_queue.put((CONTROL_ELEMENT.GLOBAL_FINISHED, None))
     except (OSError, KeyboardInterrupt):  # pragma: no cover

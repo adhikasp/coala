@@ -1,4 +1,4 @@
-from coalib.bearlib.aspects import Root
+from coalib.bearlib.aspects import Taste, Root
 
 
 @Root.subaspect
@@ -70,3 +70,6 @@ class coalaCorrect:
         fix_suggestions = """
         Always write ``coala`` with a lower case ``c``.
         """
+    max_paramters = Taste[int](
+        'Represents the max number of parameters for a function\'s.',
+        (5, 10), default=10)
