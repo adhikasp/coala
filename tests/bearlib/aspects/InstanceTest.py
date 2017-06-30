@@ -5,6 +5,16 @@ import coalib.bearlib.aspects
 
 class AspectInstanceTest:
 
+    def test_instantiation(self, RootAspect, SubAspect, SubSubAspect):
+        root_instance = RootAspect('py')
+
+        def test_child(aspects):
+            for aspect in aspects:
+                assert isinstance(aspect, coalib.bearlib.aspects.aspectbase)
+                if aspect.subaspects:
+                    test_child(aspect.subaspects.values())
+        test_child([root_instance])
+
     def test_tastes(
             self, SubAspect, SubAspect_tastes, SubAspect_taste_values):
         using_default_values = SubAspect('py')
