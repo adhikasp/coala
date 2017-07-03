@@ -3,6 +3,8 @@ import os
 import sys
 from collections import OrderedDict
 
+from coalib.bearlib.aspects import AspectList
+from coalib.bearlib.languages import Language
 from coalib.collecting.Collectors import collect_registered_bears_dirs
 from coala_utils.decorators import enforce_signature, generate_repr
 from coalib.misc.DictUtilities import update_ordered_dict_key
@@ -41,6 +43,52 @@ def append_to_sections(sections,
 
     sections[section_name.lower()].append(Setting(
         key, str(value), origin, from_cli=from_cli, to_append=to_append))
+
+
+def extract_aspects_from_section(section):
+    """
+    Extracts aspects and their related settings from a section and create an
+    aspectlist from it.
+
+    :param section: Section object.
+    :return:        aspectlist containing aspectclass instance with
+                    user-defined tastes.
+    """
+    # Skip aspects initialization if not configured in section
+    if not len(section.get('aspects')):
+        return None
+
+    if not len(section.get('language')):
+        raise AttributeError('Language was not found in configuration file. '
+                             'Usage of aspect-based configuration must include'
+                             'language information.')
+        # TODO acquire language from interactive input instead of just raising
+        # error.
+
+    aspects = AspectList(section.get('aspects'))
+    language = section.get('language')
+    try:
+        Language[language]
+    except AttributeError:
+        raise AttributeError("Language '{}' is not a valid language name or "
+                             'is not recognized by coala.'.format(language))
+
+    aspects_instance = AspectList()
+    for aspect in aspects:
+        tastes_to_init = dict()
+        for taste in aspect.tastes:
+            # TODO handle duplicate taste meant for different aspect
+            try:
+                # Search for user defined taste value
+                tastes_to_init[taste] = section[taste]
+            except IndexError:
+                # Use default taste value
+                pass
+        aspects_instance.append(aspect(language, **tastes_to_init))
+
+    aspects_instance.excludes = AspectList(section.get('excludes'))
+
+    return aspects_instance
 
 
 @generate_repr()
