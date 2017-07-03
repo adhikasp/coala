@@ -1,8 +1,10 @@
 import unittest
 import os
 
+from coalib.bearlib.aspects import AspectList, Root
 from coalib.misc import Constants
-from coalib.settings.Section import Section, Setting, append_to_sections
+from coalib.settings.Section import (
+    Section, Setting, append_to_sections, extract_aspects_from_section)
 from coalib.settings.ConfigurationGathering import get_config_directory
 from coalib.parsing.Globbing import glob_escape
 
@@ -204,3 +206,52 @@ class SectionTest(unittest.TestCase):
         sections['all.c.codestyle'].set_default_section(sections)
         self.assertEqual(sections['all.c.codestyle'].defaults,
                          sections['all'])
+
+    def test_extract_aspects_from_section(self):
+        section = Section('section')
+        # No aspects setting
+        self.assertIsNone(extract_aspects_from_section(section))
+
+        section.append(Setting(
+            'aspects',
+            'spelling, commitmessage, methodsmell'))
+        section.append(Setting(
+            'excludes',
+            'TrailingPeriod'
+        ))
+        # Custom taste for ColonExistence
+        section.append(Setting('shortlog_colon', 'false'))
+
+        # No language setting
+        with self.assertRaisesRegex(
+                AttributeError,
+                'Language was not found in configuration file. '
+                'Usage of aspect-based configuration must include'
+                'language information.'):
+            extract_aspects_from_section(section)
+
+        # Invalid language
+        section.append(Setting('language', 'not a language'))
+        with self.assertRaisesRegex(
+                AttributeError,
+                "Language 'not a language' is not a valid language name or "
+                'is not recognized by coala.'):
+            extract_aspects_from_section(section)
+
+        # Normal run case
+        section['language'] = 'py 3.4'
+
+        aspects = extract_aspects_from_section(section)
+        spelling_instance = Root.Spelling('py 3.4')
+        colon_existence_instance = (
+            Root.Metadata.CommitMessage.Shortlog.ColonExistence(
+                'py 3.4', shortlog_colon=False))
+        method_smell_instance = Root.Smell.MethodSmell('py 3.4')
+
+        self.assertIsInstance(aspects, AspectList)
+        self.assertEqual(aspects.get('spelling'), spelling_instance)
+        self.assertEqual(aspects.get('colonexistence'),
+                         colon_existence_instance)
+        self.assertEqual(aspects.get('methodsmell'), method_smell_instance)
+
+        self.assertIsNone(aspects.get('TrailingPeriod'))
