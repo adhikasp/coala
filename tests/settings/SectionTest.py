@@ -220,7 +220,7 @@ class SectionTest(unittest.TestCase):
             'TrailingPeriod'
         ))
         # Custom taste for ColonExistence
-        section.append(Setting('shortlog_colon', 'false'))
+        section.append(Setting('commitmessage.shortlog_colon', 'false'))
 
         # No language setting
         with self.assertRaisesRegex(

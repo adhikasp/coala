@@ -123,6 +123,7 @@ class BearRunningUnitTest(unittest.TestCase):
         self.global_result_dict = manager.dict()
         self.message_queue = queue.Queue()
         self.control_queue = queue.Queue()
+        self.aspects = None
 
     def test_queue_done_marking(self):
         self.message_queue.put('test')
@@ -240,6 +241,7 @@ d
         self.global_result_dict = manager.dict()
         self.message_queue = queue.Queue()
         self.control_queue = queue.Queue()
+        self.aspects = None
 
         self.file1 = 'file1'
         self.file2 = 'arbitrary'

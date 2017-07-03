@@ -218,6 +218,20 @@ class ProcessingTest(unittest.TestCase):
                                              'test message',
                                              self.unreadable_path)])
 
+    def test_run_with_aspect(self):
+        self.sections['cli'].append(Setting('jobs', '1'))
+        self.sections['cli'].append(Setting('aspects', 'coalaCorrect'))
+        self.sections['cli'].append(Setting('language', 'py'))
+        cache = FileCache(self.log_printer, 'coala_test', flush_cache=True)
+        results = execute_section(self.sections['cli'],
+                                  self.global_bears['cli'],
+                                  self.local_bears['cli'],
+                                  lambda *args: self.result_queue.put(args[2]),
+                                  cache,
+                                  self.log_printer,
+                                  console_printer=self.console_printer)
+        self.assertTrue(results[0])
+
     def test_process_queues(self):
         ctrlq = queue.Queue()
 

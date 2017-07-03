@@ -4,7 +4,6 @@ import sys
 from collections import OrderedDict
 
 from coalib.bearlib.aspects import AspectList
-from coalib.bearlib.languages import Language
 from coalib.collecting.Collectors import collect_registered_bears_dirs
 from coala_utils.decorators import enforce_signature, generate_repr
 from coalib.misc.DictUtilities import update_ordered_dict_key
@@ -62,31 +61,23 @@ def extract_aspects_from_section(section):
         raise AttributeError('Language was not found in configuration file. '
                              'Usage of aspect-based configuration must include'
                              'language information.')
-        # TODO acquire language from interactive input instead of just raising
-        # error.
 
-    aspects = AspectList(section.get('aspects'))
     language = section.get('language')
-    try:
-        Language[language]
-    except AttributeError:
-        raise AttributeError("Language '{}' is not a valid language name or "
-                             'is not recognized by coala.'.format(language))
+    aspects_instance = AspectList(exclude=section.get('excludes'))
 
-    aspects_instance = AspectList()
-    for aspect in aspects:
-        tastes_to_init = dict()
-        for taste in aspect.tastes:
-            # TODO handle duplicate taste meant for different aspect
-            try:
-                # Search for user defined taste value
-                tastes_to_init[taste] = section[taste]
-            except IndexError:
-                # Use default taste value
-                pass
-        aspects_instance.append(aspect(language, **tastes_to_init))
+    for aspect in AspectList(section.get('aspects')):
+        tastes_name = [k for k, _ in section.contents.items() if
+                       aspect.__name__.lower() in k.lower()]
+        tastes_to_init = {}
+        for name in tastes_name:
+            tastes_to_init[name.split('.')[-1]] = section[name]
 
-    aspects_instance.excludes = AspectList(section.get('excludes'))
+        try:
+            aspects_instance.append(aspect(language, **tastes_to_init))
+        except AttributeError:
+            raise AttributeError("Language '{}' is not a valid language name "
+                                 'or is not recognized by coala.'
+                                 .format(language))
 
     return aspects_instance
 
