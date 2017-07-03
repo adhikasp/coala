@@ -298,6 +298,10 @@ class Bear(Printer, LogPrinterMixin, metaclass=bearclass):
                     not self.BEAR_DEPS):
                 del kwargs['dependency_results']
 
+            # Don't pass `aspects` if the bear doesn't support it.
+            if not hasattr(self, 'aspects') and 'aspects' in kwargs:
+                del kwargs['aspects']
+
             # If it's already a list it won't change it
             result = self.run_bear_from_section(args, kwargs)
             return [] if result is None else list(result)
