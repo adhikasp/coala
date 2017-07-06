@@ -91,3 +91,14 @@ class AspectListTest(unittest.TestCase):
                           Metadata.CommitMessage.Shortlog.TrailingPeriod))
         self.assertIsNone(self.instancelist_excludes.get(
                           Metadata.CommitMessage.Body.Existence))
+
+    def test_get_leaf_aspects(self):
+        instancelist_leaf = AspectList([
+            Metadata.CommitMessage.Shortlog.ColonExistence('py'),
+            Metadata.CommitMessage.Shortlog.Tense('py'),
+            Metadata.CommitMessage.Shortlog.FirstCharacter('py'),
+            Metadata.CommitMessage.Shortlog.Length('py'),
+            Metadata.CommitMessage.Body.Length('py')
+        ])
+        self.assertCountEqual(self.instancelist_excludes.get_leaf_aspects(),
+                              instancelist_leaf)
