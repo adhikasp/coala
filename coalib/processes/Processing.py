@@ -19,6 +19,7 @@ from coalib.results.result_actions.ShowPatchAction import ShowPatchAction
 from coalib.results.RESULT_SEVERITY import RESULT_SEVERITY
 from coalib.results.SourceRange import SourceRange
 from coalib.settings.Setting import glob_list
+from coalib.settings.Section import extract_aspects_from_section
 from coalib.parsing.Globbing import fnmatch
 
 
@@ -426,6 +427,11 @@ def instantiate_processes(section,
                  for filename in filename_list
                  if filename in complete_file_dict}
 
+    aspects = extract_aspects_from_section(section)
+    if aspects:
+        # We don't need it again, so remove it to avoid name conflict.
+        section.delete_setting('aspects')
+
     bear_runner_args = {'file_name_queue': filename_queue,
                         'local_bear_list': local_bear_list,
                         'global_bear_list': global_bear_list,
@@ -436,6 +442,7 @@ def instantiate_processes(section,
                         'message_queue': message_queue,
                         'control_queue': control_queue,
                         'timeout': 0.1,
+                        'aspects': aspects,
                         'debug': debug}
 
     fill_queue(filename_queue, file_dict.keys())
