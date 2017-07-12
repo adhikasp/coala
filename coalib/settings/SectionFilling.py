@@ -1,8 +1,12 @@
 import copy
 
+from coalib.bearlib.aspects import AspectList
 from coalib.bears.BEAR_KIND import BEAR_KIND
 from coalib.collecting import Dependencies
-from coalib.collecting.Collectors import collect_bears
+from coalib.collecting.Collectors import (
+    collect_bears,
+    collect_bears_by_aspects
+)
 from coalib.settings.Setting import Setting
 
 
@@ -29,12 +33,23 @@ def fill_settings(sections, acquire_settings, log_printer):
 
     for section_name, section in sections.items():
         bear_dirs = section.bear_dirs()
-        bears = list(section.get('bears', ''))
-        section_local_bears, section_global_bears = collect_bears(
-            bear_dirs,
-            bears,
-            [BEAR_KIND.LOCAL, BEAR_KIND.GLOBAL],
-            log_printer)
+        if len(section.get('aspects')):
+            aspects = AspectList(section.get('aspects'),
+                                 exclude=section.get('excludes'))
+            aspects = aspects.get_leaf_aspects()
+            section_local_bears, section_global_bears = (
+                collect_bears_by_aspects(
+                    aspects,
+                    bear_dirs,
+                    [BEAR_KIND.LOCAL, BEAR_KIND.GLOBAL],
+                    log_printer))
+        else:
+            bears = list(section.get('bears', ''))
+            section_local_bears, section_global_bears = collect_bears(
+                bear_dirs,
+                bears,
+                [BEAR_KIND.LOCAL, BEAR_KIND.GLOBAL],
+                log_printer)
         section_local_bears = Dependencies.resolve(section_local_bears)
         section_global_bears = Dependencies.resolve(section_global_bears)
         all_bears = copy.deepcopy(section_local_bears)

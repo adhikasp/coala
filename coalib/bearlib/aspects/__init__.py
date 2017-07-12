@@ -6,6 +6,7 @@ from pkgutil import iter_modules
 from types import ModuleType
 
 from .base import aspectbase
+from .collections import AspectList
 from .exceptions import (AspectTypeError, AspectNotFoundError,
                          MultipleAspectFoundError)
 from .meta import aspectclass

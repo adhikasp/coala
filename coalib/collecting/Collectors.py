@@ -184,6 +184,22 @@ def collect_bears(bear_dirs, bear_globs, kinds, log_printer,
     return bears_found
 
 
+def collect_bears_by_aspects(aspects, bear_dirs, kinds, log_printer):
+    all_bears = get_all_bears()
+    bears_name = []
+
+    for aspect in aspects:
+        for bear in all_bears:
+            if aspect in bear.aspects['detect'] + bear.aspects['fix']:
+                bears_name.append(bear.name)
+                break
+
+    return collect_bears(bear_dirs,
+                         bears_name,
+                         kinds,
+                         log_printer)
+
+
 def filter_section_bears_by_languages(bears, languages):
     """
     Filters the bears by languages.
