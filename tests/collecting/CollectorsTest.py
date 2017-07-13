@@ -4,11 +4,13 @@ import unittest
 
 from pyprint.ConsolePrinter import ConsolePrinter
 
+from coalib.bearlib.aspects import AspectList
+from coalib.bears.BEAR_KIND import BEAR_KIND
 from coalib.bears.Bear import Bear
 from coalib.collecting.Collectors import (
     collect_all_bears_from_sections, collect_bears, collect_dirs, collect_files,
     collect_registered_bears_dirs, filter_section_bears_by_languages,
-    get_all_bears, get_all_bears_names)
+    get_all_bears, get_all_bears_names, collect_bears_by_aspects)
 from coalib.output.printers.LogPrinter import LogPrinter
 from coalib.output.printers.ListLogPrinter import ListLogPrinter
 from coalib.settings.Section import Section
@@ -274,6 +276,18 @@ class CollectBearsTest(unittest.TestCase):
 
         self.assertEqual(len(local_bears['test_section']), 2)
         self.assertEqual(len(global_bears['test_section']), 2)
+
+    def test_aspect_bear(self):
+        with bear_test_module():
+            local_bears, _ = collect_bears_by_aspects(
+                AspectList(['coalaCorrect']),
+                'python',
+                ['**'],
+                [BEAR_KIND.LOCAL, BEAR_KIND.GLOBAL],
+                self.log_printer)
+
+        print(local_bears)
+        self.assertIs(local_bears[0].name, 'AspectTestBear')
 
 
 class CollectorsTests(unittest.TestCase):
