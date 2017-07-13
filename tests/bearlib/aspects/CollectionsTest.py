@@ -92,3 +92,33 @@ class AspectListTest(unittest.TestCase):
                           CommitMessage.Shortlog.TrailingPeriod))
         self.assertIsNone(self.instancelist_excludes.get(
                           CommitMessage.Body.Existence))
+
+    def test_get_leaf_aspects(self):
+        leaves = AspectList([
+            Metadata.CommitMessage.Body.Length('py'),
+            Metadata.CommitMessage.Shortlog.ColonExistence('py'),
+            Metadata.CommitMessage.Shortlog.FirstCharacter('py'),
+            Metadata.CommitMessage.Shortlog.Length('py'),
+            Metadata.CommitMessage.Shortlog.Tense('py')
+        ])
+        instancelist_leaf = self.instancelist_excludes.get_leaf_aspects()
+
+        # Somehow the order is randomized
+        instancelist_leaf.sort(key=lambda x: type(x).__qualname__)
+        for instance, leaf in zip(instancelist_leaf, leaves):
+            self.assertEqual(instance, leaf)
+
+        # duplicated_child = AspectList([])
+
+    def test_remove(self):
+        aspectlist = AspectList([Metadata.CommitMessage])
+        self.assertIn(Metadata.CommitMessage, aspectlist)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                "^AspectList.remove\(x\): <aspectclass 'Root.Metadata'> "
+                'not in list.$'):
+            aspectlist.remove(Metadata)
+
+        aspectlist.remove(Metadata.CommitMessage)
+        self.assertEqual(aspectlist, AspectList())

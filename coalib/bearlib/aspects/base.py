@@ -75,6 +75,22 @@ def get_subaspect(parent, subaspect):
     return child
 
 
+def get_leaf_aspects(aspect):
+    # Avoid circular import
+    from .collections import AspectList
+    leaf_aspects = AspectList()
+
+    def search_leaf(aspects):
+        for aspect in aspects:
+            if not aspect.subaspects:
+                nonlocal leaf_aspects
+                leaf_aspects.append(aspect)
+            else:
+                search_leaf(aspect.subaspects.values())
+    search_leaf([aspect])
+    return leaf_aspects
+
+
 class SubaspectGetter:
     """
     Special "getter" class to implement ``get()`` method in aspectbase that
@@ -84,6 +100,13 @@ class SubaspectGetter:
     def __get__(self, obj, owner):
         parent = obj if obj is not None else owner
         return functools.partial(get_subaspect, parent)
+
+
+class LeafAspectGetter:
+
+    def __get__(self, obj, owner):
+        parent = obj if obj is not None else owner
+        return functools.partial(get_leaf_aspects, parent)
 
 
 class aspectbase:
@@ -97,6 +120,7 @@ class aspectbase:
     """
 
     get = SubaspectGetter()
+    get_leaf_aspects = LeafAspectGetter()
 
     def __init__(self, language, **taste_values):
         """
