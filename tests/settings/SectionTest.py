@@ -246,23 +246,16 @@ class SectionTest(unittest.TestCase):
                                     get_aspect('commitmessage')))
         self.assertIsNone(aspects.get('trailingperiod'))
 
-    def test_extract_aspects_from_section_no_aspects(self):
+    def test_extract_aspects_from_section_with_invalid_aspect(self):
         section = Section('section')
-        self.assertIsNone(extract_aspects_from_section(section))
+        section.append(Setting('aspects', 'commitmessage, noaspect, length'))
+        section.append(Setting('language', 'py'))
+        commitmsg_instance = Root.Metadata.CommitMessage('py')
 
-    def test_extract_aspects_from_section_no_language(self):
-        section = Section('section')
-        section.append(Setting('aspects', 'commitmessage'))
-        with self.assertRaisesRegex(
-                AttributeError,
-                'Language was not found in configuration file. '
-                'Usage of aspect-based configuration must include '
-                'language information.'):
-            extract_aspects_from_section(section)
+        aspects = extract_aspects_from_section(section)
 
-    def test_extract_aspects_from_section_incorrect_language(self):
-        section = Section('section')
-        section.append(Setting('aspects', 'commitmessage'))
-        section.append(Setting('language', 'not a language'))
-        with self.assertRaises(AttributeError):
-            extract_aspects_from_section(section)
+        with self.assertLogs('WARNING') as cm:
+            aspects.assertEqual(len(aspects), 1)
+            aspects.assertEqual(aspects[0], commitmsg_instance)
+            self.assertRegex(cm[0], 'Coala will ignore this aspect.')
+            self.assertRegex(cm[1], 'Coala will ignore this aspect.')

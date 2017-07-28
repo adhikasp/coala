@@ -9,19 +9,27 @@ from pyprint.ClosableObject import close_objects
 from pyprint.NullPrinter import NullPrinter
 import pytest
 
+from coalib.bearlib.aspects.Metadata import CommitMessage
 from coalib.misc import Constants
 from coalib.settings.Section import Section
 from coala_utils.ContextManagers import (
-    make_temp, change_directory, retrieve_stdout)
+    make_temp,
+    change_directory,
+    retrieve_stdout,
+    simulate_console_inputs,
+)
 from coalib.output.printers.LogPrinter import LogPrinter
+from coalib.output.ConsoleInteraction import acquire_settings
 from coala_utils.string_processing import escape
 from coalib.settings.ConfigurationGathering import (
     aspectize_sections,
+    check_aspect_config,
     find_user_config,
     gather_configuration,
     get_filtered_bears,
     load_configuration,
 )
+from coalib.settings.Setting import Setting
 
 from tests.TestUtilities import (
     bear_test_module,
@@ -346,13 +354,47 @@ class ConfigurationGatheringTest(unittest.TestCase):
             load_configuration(['--no-config'], self.log_printer)
             self.assertNotIn('WARNING', stdout.getvalue())
 
+
+class AspectConfigurationTest(unittest.TestCase):
+
+    def setUp(self):
+        self.section = Section('aspect section')
+        self.section.append(Setting('aspects', 'commitmessage'))
+        self.section.append(Setting('language', 'python'))
+        self.sections = {'aspect section': self.section}
+
     def test_aspectize_sections(self):
-        section = Section('test')
-        sections = {'test': section}
-        aspectize_sections(sections)
+        no_aspect_section = Section('no aspect')
+        self.sections['no aspect'] = no_aspect_section
+        aspectize_sections(self.sections, acquire_settings)
+        self.assertEqual(self.section.aspects[0], CommitMessage('py'))
+        self.assertIsNone(no_aspect_section.aspects)
 
-        self.assertIsNone(sections['test'].aspects)
+    def test_check_aspect_config_no_aspects(self):
+        self.section['aspects'] = ''
+        self.assertFalse(check_aspect_config(self.section, acquire_settings))
 
+    def test_check_aspect_config_no_language(self):
+        self.section['language'] = ''
+        with simulate_console_inputs('python'), self.assertLogs(
+                logging.getLogger()) as cm:
+            self.assertTrue(check_aspect_config(
+                            self.section, acquire_settings))
+            self.assertRegex(cm.output[0], 'Language setting is not found in '
+                             'section `aspect section`.')
+
+    def test_check_aspect_config_incorrect_language(self):
+        self.section['language'] = 'NOT A LANGUAGE'
+
+        with self.assertLogs(logging.getLogger()) as cm:
+            self.assertFalse(check_aspect_config(
+                             self.section, acquire_settings))
+            self.assertRegex(cm.output[0], 'Language `NOT A LANGUAGE` is not '
+                             'a valid language name')
+
+    def test_check_aspect_config_have_bears(self):
+        self.section['bears'] = 'TestBear'
+        self.assertTrue(check_aspect_config(self.section, acquire_settings))
 
 class ConfigurationGatheringCollectionTest(unittest.TestCase):
 

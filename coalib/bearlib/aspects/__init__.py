@@ -6,8 +6,12 @@ from pkgutil import iter_modules
 from types import ModuleType
 
 from .base import aspectbase
-from .exceptions import (AspectTypeError, AspectNotFoundError,
-                         MultipleAspectFoundError)
+from .exceptions import (
+    AspectLookupError,
+    AspectTypeError,
+    AspectNotFoundError,
+    MultipleAspectFoundError,
+)
 from .meta import aspectclass
 from .collections import AspectList
 from .taste import Taste, TasteError
@@ -19,7 +23,7 @@ from .root import Root
 
 
 __all__ = ['Root', 'Taste', 'TasteError',
-           'aspectclass', 'aspectbase', 'AspectTypeError',
+           'aspectclass', 'aspectbase', 'AspectTypeError', 'AspectLookupError'
            'AspectNotFoundError', 'MultipleAspectFoundError',
            'AspectList']
 

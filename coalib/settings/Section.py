@@ -3,7 +3,7 @@ import os
 import sys
 from collections import OrderedDict
 
-from coalib.bearlib.aspects import AspectList
+from coalib.bearlib.aspects import AspectList, AspectLookupError
 from coalib.collecting.Collectors import collect_registered_bears_dirs
 from coala_utils.decorators import enforce_signature, generate_repr
 from coalib.misc.DictUtilities import update_ordered_dict_key
@@ -46,8 +46,11 @@ def append_to_sections(sections,
 
 def extract_aspects_from_section(section):
     """
-    Extracts aspects and their related settings from a section and create an
-    AspectList from it.
+    Extracts aspects settings from a section into an AspectList.
+
+    Note that the section is assumed to already have valid and complete aspects
+    related setting. This checking could be done by
+    :meth:`coalib.settings.ConfigurationGathering.check_aspect_config`.
 
     :param section: Section object.
     :return:        AspectList containing aspectclass instance with
@@ -56,15 +59,6 @@ def extract_aspects_from_section(section):
     aspects = section.get('aspects')
     language = section.get('language')
 
-    # Skip aspects initialization if not configured in section
-    if not len(aspects):
-        return None
-
-    if not len(language):
-        raise AttributeError('Language was not found in configuration file. '
-                             'Usage of aspect-based configuration must '
-                             'include language information.')
-
     aspect_instances = AspectList(exclude=section.get('excludes'))
 
     for aspect in AspectList(aspects):
@@ -72,7 +66,11 @@ def extract_aspects_from_section(section):
         tastes = {name.split('.')[-1]: value
                   for name, value in section.contents.items()
                   if name.lower().startswith(aspect.__name__.lower())}
-        aspect_instances.append(aspect(language, **tastes))
+        try:
+            aspect_instances.append(aspect(language, **tastes))
+        except AspectLookupError as exc:
+            logging.error('{}. Coala will ignore this aspect.'.format(exc.aspectname))
+            continue
 
     return aspect_instances
 

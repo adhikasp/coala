@@ -59,6 +59,27 @@ def parse_lang_str(string):
     return name, versions
 
 
+def check_language_validity(language):
+    """
+    Check if a string is a valid language name.
+
+    >>> check_language_validity('python')
+    True
+    >>> check_language_validity('python 3')
+    True
+    >>> check_language_validity('NOT LANGUAGE')
+    False
+
+    :param language: String of language name.
+    :return:         Validity of language name.
+    """
+    try:
+        Language[language]
+        return True
+    except AttributeError:
+        return False
+
+
 class LanguageMeta(type, metaclass=LanguageUberMeta):
     """
     Metaclass for :class:`coalib.bearlib.languages.Language.Language`.

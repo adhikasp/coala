@@ -3,10 +3,12 @@ import re
 import sys
 import logging
 
+from coalib.bearlib.languages.Language import check_language_validity
 from coalib.collecting.Collectors import (
     collect_all_bears_from_sections, filter_section_bears_by_languages)
 from coalib.misc import Constants
 from coalib.output.ConfWriter import ConfWriter
+from coalib.output.printers.LogPrinter import LogPrinter
 from coalib.output.printers.LOG_LEVEL import LOG_LEVEL
 from coalib.parsing.CliParsing import parse_cli, check_conflicts
 from coalib.parsing.ConfParser import ConfParser
@@ -22,7 +24,7 @@ COAFILE_OUTPUT = Template('$type \'$file\' $found!\n'
                           '* add `-I` to suppress any use of config files\n')
 
 
-def aspectize_sections(sections):
+def aspectize_sections(sections, acquire_settings):
     """
     Search for aspects related setting in a section, initialize it, and then
     embed the aspects information as AspectList object into the section itself.
@@ -30,14 +32,55 @@ def aspectize_sections(sections):
     :param sections:  List of section that potentially contain aspects setting.
     :return:          The new sections.
     """
-    for section_name, section in sections.items():
-        section.aspects = extract_aspects_from_section(section)
-        if section.aspects is not None and len(section.get('bears')):
-            logging.warning("'aspects' and 'bears' configuration is detected "
-                            "in section '{}'. Aspect-based configuration will "
-                            'takes priority and will overwrite any '
-                            'explicitly listed bears'.format(section_name))
+    for _, section in sections.items():
+        if check_aspect_config(section, acquire_settings):
+            section.aspects = extract_aspects_from_section(section)
+        else:
+            section.aspects = None
     return sections
+
+
+def check_aspect_config(section, acquire_settings):
+    """
+    Check if a section contain required setting to run in aspects mode.
+
+    :param sections:        The section that potentially contain aspect
+                            setting.
+    :param acquire_setting: Method used to acquire missing setting.
+    :return:                The validity of section.
+    """
+    aspects = section.get('aspects')
+    language = section.get('language')
+
+    if not len(aspects):
+        return False
+
+    if not len(language):
+        logging.warning('Language setting is not found in section `{}`. '
+                        'Usage of aspect-based configuration must include '
+                        'language information.'.format(section.name))
+        language_dict = acquire_settings(
+            LogPrinter(),
+            {'language': ['The file\'s language in section `{}`'
+                          .format(section.name),
+                          'all aspect bears']},
+            section)
+        language = language_dict['language']
+        section.append(Setting('language', language))
+
+    if not check_language_validity(language):
+        logging.warning('Language `{}` is not a valid language name or '
+                        'is not recognized by coala. Coala will fallback to '
+                        'using `bears` setting.'.format(language))
+        return False
+
+    if len(section.get('bears')):
+        logging.warning('`aspects` and `bears` configuration is detected '
+                        'in section `{}`. Aspect-based configuration will '
+                        'takes priority and will overwrite any '
+                        'explicitly listed bears.'.format(section.name))
+
+    return True
 
 
 def merge_section_dicts(lower, higher):
@@ -421,7 +464,7 @@ def gather_configuration(acquire_settings,
         arg_list = sys.argv[1:] if arg_list is None else arg_list
     sections, targets = load_configuration(arg_list, log_printer, arg_parser,
                                            args=args)
-    aspectize_sections(sections)
+    aspectize_sections(sections, acquire_settings)
     local_bears, global_bears = fill_settings(sections,
                                               acquire_settings,
                                               log_printer)
